@@ -121,3 +121,9 @@ dist/protocol.schema.json
 
 # Synthing
 **/.stfolder/
+
+# OpenBodhi — vault data (personal, never commit)
+vault/nodes/
+vault/edges/
+vault/*.db
+vault/chroma/
