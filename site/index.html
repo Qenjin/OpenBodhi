@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenBodhi | A thinking partner that remembers</title>
+  <meta name="description" content="OpenBodhi is a private AI thinking partner powered by Claude. Captures your ideas, connects patterns, and grows with you. Open source, MIT licensed. Your data stays yours.">
+  <meta name="theme-color" content="#0e0e11">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23d4941a'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300;0,7..72,400;0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,300;1,7..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Literata', 'Georgia', 'serif'],
+            mono: ['IBM Plex Mono', 'monospace'],
+          },
+          borderRadius: {
+            DEFAULT: '2px',
+            sm: '1px',
+            md: '2px',
+            lg: '2px',
+            xl: '2px',
+            full: '2px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root {
+      --bodhi-amber: #d4941a;
+      --bodhi-amber-soft: #c78a1a;
+      --bodhi-amber-glow: rgba(212, 148, 26, 0.12);
+      --bodhi-sage: #5a8a75;
+      --bodhi-sage-soft: rgba(90, 138, 117, 0.15);
+      --bodhi-bg: #0e0e11;
+      --bodhi-bg-raised: #151518;
+      --bodhi-bg-alt: #111114;
+      --bodhi-text: #d8cfc0;
+      --bodhi-text-bright: #ece5d8;
+      --bodhi-text-muted: #7a7572;
+      --bodhi-border: rgba(212, 148, 26, 0.08);
+      --bodhi-border-sage: rgba(90, 138, 117, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    ::selection {
+      background: rgba(212, 148, 26, 0.25);
+      color: #ece5d8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Literata', Georgia, serif;
+      font-optical-sizing: auto;
+      background: var(--bodhi-bg);
+      color: var(--bodhi-text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ── Grain texture ── */
+    .grain::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Ambient breathing glow ── */
+    .ambient-glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 700px;
+      background: radial-gradient(ellipse at center, rgba(212, 148, 26, 0.045) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+      animation: breathe 8s ease-in-out infinite;
+    }
+
+    /* ── Keyframes ── */
+    @keyframes breathe {
+      0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+      50% { opacity: 0.85; transform: translateX(-50%) scale(1.04); }
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(32px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.25; }
+      50% { opacity: 1; }
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(-16px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .animate-fade-up {
+      animation: fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .animate-slide-in {
+      animation: slide-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .pulse-dot {
+      animation: pulse-dot 3.5s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient-glow, .animate-fade-up, .animate-slide-in, .pulse-dot { animation: none; }
+      .ambient-glow { opacity: 0.6; }
+      .animate-fade-up, .animate-slide-in { opacity: 1; transform: none; }
+    }
+
+    /* ── Scroll-triggered reveal ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── Section divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--bodhi-amber) 50%, transparent 100%);
+      opacity: 0.15;
+    }
+
+    /* ── Typographic details ── */
+    .heading-xl {
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .heading-lg {
+      font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+    }
+
+    .body-lg {
+      font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--bodhi-amber);
+    }
+
+    .label-sage {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--bodhi-sage);
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bodhi-bg-raised);
+      border: 1px solid var(--bodhi-border-sage);
+      border-radius: 2px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      border-color: rgba(90, 138, 117, 0.28);
+      box-shadow: 0 0 40px rgba(90, 138, 117, 0.06);
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.9rem 2.2rem;
+      border-radius: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-amber {
+      background: linear-gradient(135deg, #d4941a 0%, #b87a12 100%);
+      color: #0e0e11;
+      box-shadow: 0 2px 20px rgba(212, 148, 26, 0.2);
+    }
+    .btn-amber:hover {
+      box-shadow: 0 4px 40px rgba(212, 148, 26, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--bodhi-text);
+      border: 1px solid var(--bodhi-border);
+    }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: rgba(212, 148, 26, 0.2);
+    }
+
+    /* ── Node type chips ── */
+    .node-chip {
+      padding: 0.75rem 1rem;
+      background: var(--bodhi-bg-raised);
+      border: 1px solid;
+      border-radius: 2px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .node-chip:hover {
+      transform: scale(1.03);
+    }
+
+    /* ── Worker row ── */
+    .worker-row {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--bodhi-bg-raised);
+      border: 1px solid var(--bodhi-border-sage);
+      border-radius: 2px;
+      transition: border-color 0.3s ease;
+    }
+    .worker-row:hover {
+      border-color: rgba(90, 138, 117, 0.25);
+    }
+
+    /* ── Trust badge ── */
+    .trust-badge {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      background: var(--bodhi-bg-raised);
+      border: 1px solid var(--bodhi-border);
+      border-radius: 2px;
+    }
+
+    /* ── Nav glass ── */
+    .nav-glass {
+      background: rgba(14, 14, 17, 0.88);
+      backdrop-filter: blur(20px) saturate(1.2);
+      -webkit-backdrop-filter: blur(20px) saturate(1.2);
+      border-bottom: 1px solid var(--bodhi-border);
+    }
+
+    /* ── Prose paragraph spacing ── */
+    .prose p + p { margin-top: 1.4em; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bodhi-bg); }
+    ::-webkit-scrollbar-thumb { background: rgba(212, 148, 26, 0.15); border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(212, 148, 26, 0.25); }
+  </style>
+</head>
+<body class="grain">
+
+  <div class="ambient-glow"></div>
+
+  <!-- ════════════════════════════════════════════
+       NAVIGATION
+       ════════════════════════════════════════════ -->
+  <nav class="nav-glass sticky top-0 z-50">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="https://qenjin.io" class="flex items-center gap-2 font-mono text-xs tracking-wide hover:opacity-70 transition-opacity" style="color: var(--bodhi-text-muted)">
+        <svg class="w-3 h-3 rotate-180" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        qenjin.io
+      </a>
+      <div class="flex items-center gap-3">
+        <span class="font-serif text-lg font-600 tracking-tight" style="color: var(--bodhi-amber); font-weight: 600;">OpenBodhi</span>
+        <div class="w-1.5 h-1.5 pulse-dot" style="background: var(--bodhi-amber); border-radius: 2px;"></div>
+      </div>
+      <a href="https://github.com/Qenjin/OpenBodhi" target="_blank" rel="noopener noreferrer"
+        class="font-mono text-xs tracking-wide hover:opacity-70 transition-opacity" style="color: var(--bodhi-text-muted)">GitHub</a>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ════════════════════════════════════════════
+         HERO
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 pt-24 pb-28 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+
+        <div class="animate-fade-up" style="animation-delay: 0.1s">
+          <span class="inline-block mb-10 px-4 py-2 font-mono text-xs tracking-widest uppercase border"
+            style="border-color: rgba(212, 148, 26, 0.2); color: var(--bodhi-amber); background: rgba(212, 148, 26, 0.04); border-radius: 2px;">
+            Open source &middot; Local-first &middot; MIT License
+          </span>
+        </div>
+
+        <h1 class="heading-xl mb-8 animate-fade-up" style="animation-delay: 0.25s; color: var(--bodhi-text-bright)">
+          A thinking partner<br>
+          <span style="color: var(--bodhi-amber); text-shadow: 0 0 80px rgba(212, 148, 26, 0.2);">that remembers.</span>
+        </h1>
+
+        <p class="body-lg max-w-xl mx-auto mb-12 animate-fade-up" style="animation-delay: 0.4s; color: var(--bodhi-text-muted)">
+          Your private idea buddy. Powered by Claude Opus 4.6 with 1M context.
+          Captures your thinking when it arrives, connects patterns over time,
+          and keeps your data entirely yours.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style="animation-delay: 0.55s">
+          <a href="https://growmindspace.substack.com" target="_blank" rel="noopener noreferrer" class="btn btn-amber">
+            Follow the build
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="https://github.com/Qenjin/OpenBodhi" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M18 6a9 9 0 0 1-9 9"/></svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-4xl mx-auto px-6"><div class="divider"></div></div>
+
+    <!-- ════════════════════════════════════════════
+         WHO THIS IS FOR
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6">
+      <div class="max-w-2xl mx-auto reveal">
+        <p class="label mb-6">The person this is for</p>
+
+        <div class="prose body-lg" style="color: var(--bodhi-text-muted)">
+          <p>You have ideas that matter. They arrive fast. In fragments. Mid-walk, mid-drive, at 2am when the connection surfaces. By the time you sit down to write them out, the energy is gone.</p>
+
+          <p>Most tools make you organize before you capture. AI assistants are worse. They listen for one session, then forget everything. They log your conversations to a server you do not control.</p>
+
+          <p>You want something like Jarvis. Private. Thoughtful. Focused on wellness and personal growth. Something that actually remembers what you told it last week.</p>
+
+          <p style="color: var(--bodhi-text-bright)">Bodhi is that. A safe, wellness-focused thinking partner. Powered by Claude with a million tokens of memory. It captures your ideas, connects them over time, and runs with the privacy your thinking deserves.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-4xl mx-auto px-6"><div class="divider"></div></div>
+
+    <!-- ════════════════════════════════════════════
+         WHAT IT DOES
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6" style="background: var(--bodhi-bg-alt)">
+      <div class="max-w-4xl mx-auto">
+        <div class="reveal">
+          <p class="label-sage mb-6">How it works</p>
+          <h2 class="heading-lg mb-4" style="color: var(--bodhi-text-bright)">Capture. Pattern. Surface. Act.</h2>
+          <p class="body-lg mb-16 max-w-xl" style="color: var(--bodhi-text-muted)">
+            Send a thought to Signal or WhatsApp. No formatting. No categories. Just the thought. Bodhi does the rest.
+          </p>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-5">
+
+          <div class="card p-6 reveal" style="transition-delay: 0.05s">
+            <div class="w-9 h-9 flex items-center justify-center mb-5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <h3 class="text-base font-semibold mb-2" style="color: var(--bodhi-text-bright)">Capture without friction</h3>
+            <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Send a message. Bodhi files it, tags it, and asks for an energy level. No decisions at capture time.</p>
+          </div>
+
+          <div class="card p-6 reveal" style="transition-delay: 0.1s">
+            <div class="w-9 h-9 flex items-center justify-center mb-5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            </div>
+            <h3 class="text-base font-semibold mb-2" style="color: var(--bodhi-text-bright)">Morning digest</h3>
+            <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Each morning, a short summary arrives. What you have been circling. What you said mattered but have not acted on.</p>
+          </div>
+
+          <div class="card p-6 reveal" style="transition-delay: 0.15s">
+            <div class="w-9 h-9 flex items-center justify-center mb-5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+            </div>
+            <h3 class="text-base font-semibold mb-2" style="color: var(--bodhi-text-bright)">Connections you missed</h3>
+            <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">The system finds patterns across sessions, clients, and practices. Connections surface that you would not have tracked manually.</p>
+          </div>
+
+          <div class="card p-6 reveal" style="transition-delay: 0.2s">
+            <div class="w-9 h-9 flex items-center justify-center mb-5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <h3 class="text-base font-semibold mb-2" style="color: var(--bodhi-text-bright)">The nudge that matters</h3>
+            <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">When you return to the same idea three days in a row, Bodhi notices. It sends one message: "Ready to act?"</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         ONTOLOGY
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6">
+      <div class="max-w-4xl mx-auto">
+        <div class="reveal">
+          <p class="label mb-6">Not a search index. A knowledge graph.</p>
+          <h2 class="heading-lg mb-4" style="color: var(--bodhi-text-bright)">Your thinking, typed and connected</h2>
+          <p class="body-lg mb-14 max-w-xl" style="color: var(--bodhi-text-muted)">
+            Every node carries a type, an energy level, and relationships to other nodes.
+            The system knows the difference between an idea you are circling and a decision you have made.
+          </p>
+        </div>
+
+        <!-- Node types -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-14 reveal">
+          <div class="node-chip" style="border-color: rgba(212, 148, 26, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #d4941a; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #d4941a">Idea</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">Raw insight, not yet verified</p>
+          </div>
+
+          <div class="node-chip" style="border-color: rgba(204, 163, 41, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #cca329; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #cca329">Pattern</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">Recurring theme across ideas</p>
+          </div>
+
+          <div class="node-chip" style="border-color: rgba(90, 138, 117, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #5a8a75; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #5a8a75">Practice</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">Something you do intentionally</p>
+          </div>
+
+          <div class="node-chip" style="border-color: rgba(80, 140, 180, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #508cb4; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #508cb4">Decision</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">A choice made, with context</p>
+          </div>
+
+          <div class="node-chip" style="border-color: rgba(140, 100, 170, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #8c64aa; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #8c64aa">Synthesis</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">AI-discovered connection</p>
+          </div>
+
+          <div class="node-chip" style="border-color: rgba(85, 140, 85, 0.15)">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-2 h-2" style="background: #558c55; border-radius: 1px;"></div>
+              <span class="font-mono text-xs font-medium" style="color: #558c55">Integration</span>
+            </div>
+            <p class="text-xs" style="color: var(--bodhi-text-muted)">Insight you have embodied</p>
+          </div>
+        </div>
+
+        <!-- Relationship types -->
+        <div class="reveal" style="background: var(--bodhi-bg-raised); border: 1px solid var(--bodhi-border); border-radius: 2px; padding: 1.5rem;">
+          <p class="font-mono text-[0.65rem] tracking-widest uppercase mb-5" style="color: var(--bodhi-text-muted)">
+            Relationship types
+          </p>
+          <div class="grid sm:grid-cols-2 gap-x-10 gap-y-3">
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">LEADS_TO</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">A naturally develops into B</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">GENERATES</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">A produced or caused B</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">SURFACES_FROM</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">A became visible because of B</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">CONTRADICTS</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">A and B are in tension</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">ASSOCIATED_WITH</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">Related (undirected)</span>
+            </div>
+            <div class="flex items-baseline gap-3">
+              <code class="font-mono text-xs font-medium" style="color: var(--bodhi-amber)">INFORMS</code>
+              <span class="text-xs" style="color: var(--bodhi-text-muted)">A provides context for B</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-4xl mx-auto px-6"><div class="divider"></div></div>
+
+    <!-- ════════════════════════════════════════════
+         FOUR WORKERS
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6" style="background: var(--bodhi-bg-alt)">
+      <div class="max-w-4xl mx-auto">
+        <div class="reveal">
+          <p class="label-sage mb-6">Autonomous workers</p>
+          <h2 class="heading-lg mb-4" style="color: var(--bodhi-text-bright)">Four agents that run while you sleep</h2>
+          <p class="body-lg mb-14 max-w-xl" style="color: var(--bodhi-text-muted)">
+            Bodhi does not wait for you to ask. Scheduled workers process, synthesize, and surface what matters on their own cadence.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+
+          <div class="worker-row reveal" style="transition-delay: 0.05s">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0 mt-0.5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-3 mb-1.5">
+                <h3 class="text-base font-semibold" style="color: var(--bodhi-text-bright)">Curator</h3>
+                <span class="font-mono text-[0.7rem]" style="color: var(--bodhi-sage)">Real-time</span>
+              </div>
+              <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Receives your messages. Simple ideas go straight to the vault. Complex ones get 2-3 clarifying questions before filing.</p>
+            </div>
+          </div>
+
+          <div class="worker-row reveal" style="transition-delay: 0.1s">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0 mt-0.5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-3 mb-1.5">
+                <h3 class="text-base font-semibold" style="color: var(--bodhi-text-bright)">Distiller</h3>
+                <span class="font-mono text-[0.7rem]" style="color: var(--bodhi-sage)">6am daily</span>
+              </div>
+              <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Reviews the last seven days. Synthesizes patterns. Sends your morning digest. Flags ideas that keep coming back.</p>
+            </div>
+          </div>
+
+          <div class="worker-row reveal" style="transition-delay: 0.15s">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0 mt-0.5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-3 mb-1.5">
+                <h3 class="text-base font-semibold" style="color: var(--bodhi-text-bright)">Janitor</h3>
+                <span class="font-mono text-[0.7rem]" style="color: var(--bodhi-sage)">Weekly</span>
+              </div>
+              <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Vault hygiene. Orphaned nodes get flagged. Broken links get repaired. Duplicates surface for merging. Nothing deleted without you.</p>
+            </div>
+          </div>
+
+          <div class="worker-row reveal" style="transition-delay: 0.2s">
+            <div class="w-9 h-9 flex items-center justify-center shrink-0 mt-0.5" style="background: var(--bodhi-sage-soft); border-radius: 2px;">
+              <svg class="w-[18px] h-[18px]" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-baseline gap-3 mb-1.5">
+                <h3 class="text-base font-semibold" style="color: var(--bodhi-text-bright)">Surveyor</h3>
+                <span class="font-mono text-[0.7rem]" style="color: var(--bodhi-sage)">Weekly</span>
+              </div>
+              <p class="text-sm leading-relaxed" style="color: var(--bodhi-text-muted)">Embeds your entire vault into vector space. Runs HDBSCAN clustering. Finds bridges between idea clusters you did not know existed.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         SECURITY / PHILOSOPHY
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6">
+      <div class="max-w-4xl mx-auto">
+        <div class="grid lg:grid-cols-5 gap-14">
+
+          <div class="lg:col-span-3 reveal">
+            <p class="label mb-6">Why it is built this way</p>
+            <h2 class="heading-lg mb-8" style="color: var(--bodhi-text-bright)">
+              Your thinking is the most<br>sensitive data you carry.
+            </h2>
+            <div class="prose text-base leading-relaxed" style="color: var(--bodhi-text-muted)">
+              <p>Your ideas, your journal entries, your half-formed plans. The raw material of how you think. Most AI tools store all of that on someone else's server and use it to train their models.</p>
+              <p style="color: var(--bodhi-text-bright)">Bodhi takes the opposite position. The code is open. It does not phone home. Your data stays on your machine. If we stop building, your vault still runs.</p>
+              <p class="text-sm italic" style="color: var(--bodhi-amber-soft); opacity: 0.7">We built it this way because anything less did not feel trustworthy to us either.</p>
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 space-y-3 reveal" style="transition-delay: 0.1s">
+
+            <div class="trust-badge">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <div>
+                <p class="text-sm font-semibold" style="color: var(--bodhi-text-bright)">Local-first</p>
+                <p class="text-xs" style="color: var(--bodhi-text-muted)">Agent runs on your machine. No cloud dependency.</p>
+              </div>
+            </div>
+
+            <div class="trust-badge">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <div>
+                <p class="text-sm font-semibold" style="color: var(--bodhi-text-bright)">2FA escalation</p>
+                <p class="text-xs" style="color: var(--bodhi-text-muted)">Sensitive actions require TOTP code. 5-minute expiry.</p>
+              </div>
+            </div>
+
+            <div class="trust-badge">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14,2 14,8 20,8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>
+              <div>
+                <p class="text-sm font-semibold" style="color: var(--bodhi-text-bright)">Immutable audit</p>
+                <p class="text-xs" style="color: var(--bodhi-text-muted)">Every action logged. Agent cannot edit the log.</p>
+              </div>
+            </div>
+
+            <div class="trust-badge">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+              <div>
+                <p class="text-sm font-semibold" style="color: var(--bodhi-text-bright)">Open code</p>
+                <p class="text-xs" style="color: var(--bodhi-text-muted)">MIT licensed. Fork it. Audit it. Own it.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="max-w-4xl mx-auto px-6"><div class="divider"></div></div>
+
+    <!-- ════════════════════════════════════════════
+         CONNECT YOUR STACK
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-24 px-6" style="background: var(--bodhi-bg-alt)">
+      <div class="max-w-4xl mx-auto">
+        <div class="reveal">
+          <p class="label-sage mb-6">No opinion on your stack</p>
+          <h2 class="heading-lg mb-4" style="color: var(--bodhi-text-bright)">Connect what you already use</h2>
+          <p class="body-lg mb-14 max-w-xl" style="color: var(--bodhi-text-muted)">No forced migration. No defaults that lock you in.</p>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-8 reveal">
+
+          <div>
+            <div class="flex items-center gap-2 mb-5">
+              <svg class="w-4 h-4" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <span class="font-mono text-xs font-medium tracking-wide" style="color: var(--bodhi-amber)">Primary intelligence</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text-bright)">Claude Opus 4.6</span><span class="text-xs" style="color: var(--bodhi-amber)">1M context</span></div>
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text)">Claude Sonnet 4.6</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Fast daily tasks</span></div>
+              <div class="text-xs mt-3 leading-relaxed" style="color: var(--bodhi-text-muted)">Your API key. Your cost. Full context window for deep thinking and pattern recognition.</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-5">
+              <svg class="w-4 h-4" style="color: var(--bodhi-sage)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+              <span class="font-mono text-xs font-medium tracking-wide" style="color: var(--bodhi-text-bright)">Knowledge base</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text)">Obsidian</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Markdown vault</span></div>
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text)">Logseq</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Block-based notes</span></div>
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text)">Standard Notes</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Encrypted notes</span></div>
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text)">Any markdown folder</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Plain files</span></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center gap-2 mb-5">
+              <svg class="w-4 h-4" style="color: var(--bodhi-text-muted)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></svg>
+              <span class="font-mono text-xs font-medium tracking-wide" style="color: var(--bodhi-text-muted)">Local models (optional)</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text-muted)">Ollama</span><span class="text-xs" style="color: var(--bodhi-text-muted)">Local inference</span></div>
+              <div class="flex items-baseline gap-2"><span class="text-sm font-medium" style="color: var(--bodhi-text-muted)">Qwen3, Llama, Mistral</span><span class="text-xs" style="color: var(--bodhi-text-muted)">8B+ models</span></div>
+              <div class="text-xs mt-3 leading-relaxed" style="color: var(--bodhi-text-muted)">Experimental. Not recommended for primary use. Requires 8GB+ VRAM.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════
+         BUILD IN PUBLIC CTA
+         ════════════════════════════════════════════ -->
+    <section class="relative z-10 py-28 px-6">
+      <div class="max-w-3xl mx-auto text-center reveal">
+
+        <div class="w-11 h-11 mx-auto mb-8 flex items-center justify-center" style="background: var(--bodhi-amber-glow); border-radius: 2px;">
+          <svg class="w-5 h-5" style="color: var(--bodhi-amber)" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        </div>
+
+        <h2 class="heading-lg mb-5" style="color: var(--bodhi-text-bright)">Built in public. Every decision documented.</h2>
+        <p class="body-lg mb-12 max-w-lg mx-auto" style="color: var(--bodhi-text-muted)">
+          This project sits at the intersection of consciousness work, personal growth, and technology.
+          That intersection is where the most interesting problems are right now.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="https://growmindspace.substack.com" target="_blank" rel="noopener noreferrer" class="btn btn-amber">
+            Follow on Substack
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="https://github.com/Qenjin/OpenBodhi" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+            Contribute on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════ -->
+  <footer class="relative z-10 py-10 px-6" style="border-top: 1px solid var(--bodhi-border);">
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5">
+      <div class="text-center sm:text-left">
+        <p class="text-sm font-semibold" style="color: var(--bodhi-text-bright)">OpenBodhi</p>
+        <p class="text-xs mt-1" style="color: var(--bodhi-text-muted)">Bodhi. Enlightenment. Built in South Dakota.</p>
+      </div>
+      <p class="font-serif text-xs italic" style="color: var(--bodhi-amber-soft); opacity: 0.5;">good comes from good</p>
+      <div class="flex gap-6 font-mono text-xs" style="color: var(--bodhi-text-muted)">
+        <a href="https://growmindspace.substack.com" target="_blank" rel="noopener noreferrer" class="hover:opacity-70 transition-opacity">Substack</a>
+        <a href="https://github.com/Qenjin/OpenBodhi" target="_blank" rel="noopener noreferrer" class="hover:opacity-70 transition-opacity">GitHub</a>
+        <a href="https://qenjin.io" class="hover:opacity-70 transition-opacity">Qenjin</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll reveal observer -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+      document.querySelectorAll('.reveal').forEach(function(el) {
+        observer.observe(el);
+      });
+    });
+  </script>
+
+</body>
+</html>

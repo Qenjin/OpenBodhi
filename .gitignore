@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Vault data — personal, never commit
+vault/nodes/
+vault/edges/
+vault/*.db
+vault/chroma/
+
+# Build outputs
+dist/
+build/
+.turbo/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+.tmp/
+
+# Claude Code
+.claude/settings.local.json

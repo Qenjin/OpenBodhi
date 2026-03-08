@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Qenjin/OpenBodhi/blob/main/vault/schema/nodes.json",
+  "title": "OpenBodhi Node",
+  "description": "A single knowledge node in the OpenBodhi vault",
+  "type": "object",
+  "required": ["id", "type", "content", "energy_level", "created_at", "source", "tags"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID v4. Generated on creation. Immutable."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["Idea", "Pattern", "Practice", "Decision", "Synthesis", "Integration"],
+      "description": "Node type. Determines how the node is treated by workers."
+    },
+    "content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000,
+      "description": "The raw thought. Preserved as captured. Not edited by AI."
+    },
+    "energy_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "User-assigned urgency/resonance. 1 = low, 5 = high."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp with timezone."
+    },
+    "source": {
+      "type": "string",
+      "enum": ["signal", "whatsapp", "manual", "surveyor", "distiller"],
+      "description": "Where this node originated."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$",
+        "maxLength": 50
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "AI-generated tags. Lowercase, hyphenated."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp. Optional."
+    },
+    "promoted_from": {
+      "type": "string",
+      "format": "uuid",
+      "description": "If this node was promoted from another (e.g. Idea → Pattern), the source node UUID."
+    },
+    "cluster_id": {
+      "type": "string",
+      "description": "HDBSCAN cluster label assigned by Surveyor."
+    },
+    "embedding_model": {
+      "type": "string",
+      "description": "Name of the embedding model used to vectorize this node."
+    },
+    "created_by": {
+      "type": "string",
+      "enum": ["curator", "distiller", "janitor", "surveyor", "human"],
+      "description": "Which worker or human created this node."
+    }
+  }
+}
