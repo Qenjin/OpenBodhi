@@ -8,12 +8,12 @@ None of them act without the user's vault data. None of them store data external
 ## Curator
 
 **Schedule:** Real-time
-**Trigger:** Incoming message via Signal or WhatsApp
+**Trigger:** Incoming message via Telegram
 **Skill file:** `skills/bodhi-curator/`
 
 ### Flow
 
-1. Message arrives at OpenClaw Gateway via Signal bridge
+1. Message arrives at OpenClaw Gateway via Telegram bridge
 2. Gateway routes to bodhi-curator skill
 3. Curator assesses complexity:
    - Simple (single clear thought) → proceed to classification
@@ -62,19 +62,17 @@ Curator uses the minimum number of questions. The goal is capture, not analysis.
    - 3-5 bullet points max
    - Each bullet references a specific node or tag cluster
    - Tone: calm, observational, no urgency
-6. Deliver digest via Signal
-7. Flag recurring pattern candidates: send separately with "Noticed a pattern — Idea or Pattern node?"
+6. Deliver digest via Telegram
+7. Flag recurring pattern candidates: send separately with "Noticed a pattern. Idea or Pattern node?"
 
 ### Digest format
 
 ```
-Morning, [name].
+Here is what your mind has been working on.
 
-Here is what your mind has been working on:
-
-• [theme 1] — appeared [n] times, energy [avg]
-• [theme 2] — connected to [related tag]
-• [synthesis observation]
+- [theme 1]: appeared [n] times, energy [avg]
+- [theme 2]: connected to [related tag]
+- [synthesis observation]
 
 One thing to sit with: [single most energetic or recurring idea]
 ```
@@ -105,7 +103,7 @@ No message is sent. Silence is appropriate when the vault is quiet.
 3. Flag pairs with similarity > 0.92 as duplicate candidates
 4. Find broken edges (edges referencing deleted or missing node IDs)
 5. Generate hygiene report
-6. Send report via Signal for human approval
+6. Send report via Telegram for human approval
 7. Wait for user response before taking any action
 8. Apply approved changes only
 
@@ -152,7 +150,7 @@ Orphan detection does not include nodes created in the last 7 days (too new to h
 5. Generate Synthesis nodes for each significant bridge
 6. Write Synthesis nodes to vault with SURFACES_FROM edges
 7. Run SOC analysis: plot energy_level distribution, check for power law signature
-8. Send weekly insight summary via Signal
+8. Send weekly insight summary via Telegram
 
 ### HDBSCAN rationale
 

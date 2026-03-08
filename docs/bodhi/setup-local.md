@@ -1,7 +1,6 @@
 # Local Setup Guide
 
-This guide sets up OpenBodhi on a home desktop.
-Target hardware: NVIDIA GTX 1070 (8GB VRAM), Intel i5, 16GB RAM, Windows 11.
+This guide sets up OpenBodhi on a dedicated home desktop or server.
 
 ---
 
@@ -77,8 +76,7 @@ ollama pull nomic-embed-text
 ollama pull qwen3:8b
 ```
 
-The Qwen3-8B model is approximately 5.8GB at Q4_K_M quantization. It fits in 8GB VRAM.
-Sub-2 second tool calls on a GTX 1070.
+The Qwen3-8B model is approximately 5.8GB at Q4_K_M quantization. It fits in an 8GB VRAM GPU.
 
 Verify Ollama is running:
 
@@ -181,8 +179,8 @@ Documentation will be updated when this is implemented.
 
 ## Hardware Notes
 
-**GTX 1070 (8GB VRAM):**
-- Qwen3-8B at Q4_K_M: ~5.8-6.3GB VRAM — fits with room for inference overhead
+**GPU (optional, for local models):**
+- Qwen3-8B at Q4_K_M: ~5.8-6.3GB VRAM
 - nomic-embed-text: minimal VRAM, runs alongside the main model
 - ChromaDB HDBSCAN (CPU): does not require GPU
 

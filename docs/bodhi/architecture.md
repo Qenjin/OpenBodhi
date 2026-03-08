@@ -10,14 +10,13 @@ wellness-focused knowledge layer on top.
 
 ### Gateway WebSocket
 
-OpenClaw runs a local Gateway at `ws://127.0.0.1:18789`. All message channels (Signal,
-WhatsApp, Telegram) connect as clients to this Gateway. Skills connect as skill servers.
+OpenClaw runs a local Gateway. All message channels (Telegram, Signal, WhatsApp) connect as clients to this Gateway. Skills connect as skill servers.
 
 ```
-Signal bridge ──→ |               | ←── bodhi-curator (skill)
-WhatsApp bridge → | OpenClaw      | ←── bodhi-distiller (skill)
-Telegram bridge → | Gateway       | ←── bodhi-janitor (skill)
-                  | :18789        | ←── bodhi-surveyor (skill)
+Telegram bridge → |               | ←── bodhi-curator (skill)
+Signal bridge ──→ | OpenClaw      | ←── bodhi-distiller (skill)
+WhatsApp bridge → | Gateway       | ←── bodhi-janitor (skill)
+                  |               | ←── bodhi-surveyor (skill)
                   |               |
                   └── Claude API (primary intelligence)
 ```
@@ -43,24 +42,24 @@ OpenBodhi adds 4 custom skills. The rest of the OpenClaw skill system is inherit
 ## OpenBodhi Data Flow
 
 ```
-Incoming message (Signal/WhatsApp)
+Incoming message (Telegram)
     ↓
-OpenClaw Gateway (ws://127.0.0.1:18789)
+OpenClaw Gateway (localhost only)
     ↓
 bodhi-curator skill
     ↓
-Claude Opus 4.6 (classify, tag, question)
+Claude Sonnet 4.6 (classify, tag)
     ↓
 Vault write (JSON node + ChromaDB embedding)
     ↓
 Acknowledgment → user
 
 Scheduled (6am daily):
-bodhi-distiller → vault query → Claude synthesis → Signal digest
+bodhi-distiller → vault query → Claude synthesis → Telegram digest
 
 Scheduled (weekly):
 bodhi-janitor → duplicate/orphan scan → hygiene report → user approval
-bodhi-surveyor → embed all nodes → HDBSCAN → Synthesis nodes → vault write → Signal insight
+bodhi-surveyor → embed all nodes → HDBSCAN → Synthesis nodes → vault write → Telegram insight
 ```
 
 ---

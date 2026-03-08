@@ -20,14 +20,14 @@
 
 **Goal:** Get OpenClaw running on a home desktop, connected to Signal.
 
-- [ ] Run OpenClaw Gateway on home desktop (ws://127.0.0.1:18789)
-- [ ] Connect Signal bridge via OpenClaw
+- [ ] Run OpenClaw Gateway on dedicated machine (localhost only)
+- [ ] Connect Telegram bridge via OpenClaw
 - [ ] Configure Anthropic API key
 - [ ] Set up Ollama with nomic-embed-text embedding model
 - [ ] Docker Compose for isolated development
-- [ ] Verify end-to-end: Signal message → Gateway → Claude response
+- [ ] Verify end-to-end: Telegram message → Gateway → Claude response
 
-**Outcome:** A working local AI gateway that responds to Signal messages.
+**Outcome:** A working local AI gateway that responds to Telegram messages.
 
 ---
 
@@ -44,7 +44,7 @@
 - [ ] Local ChromaDB for vector storage
 - [ ] JSON file persistence for graph nodes
 
-**Outcome:** Every Signal message becomes a structured vault node with type, tags, and energy level.
+**Outcome:** Every Telegram message becomes a structured vault node with type, tags, and energy level.
 
 ---
 
@@ -72,7 +72,7 @@
 - [ ] 7-day rolling window analysis
 - [ ] Recurring pattern detection (same tag appearing 3+ times)
 - [ ] Morning digest generation via Claude
-- [ ] Signal/WhatsApp delivery of digest
+- [ ] Telegram delivery of digest
 - [ ] Pattern flagging: recurring ideas highlighted with frequency count
 
 **Outcome:** Every morning, Bodhi sends a short synthesis of what your mind has been working on.
@@ -93,7 +93,7 @@
 **Surveyor:**
 - [ ] Scaffold `skills/bodhi-surveyor` as weekly cron skill
 - [ ] Embed all vault nodes into vector space
-- [ ] HDBSCAN clustering (switched from OPTICS per Alfred research)
+- [ ] HDBSCAN clustering
 - [ ] Cluster labeling via Claude
 - [ ] Bridge node discovery: ideas that connect otherwise separate clusters
 - [ ] Auto-generate Synthesis nodes with SURFACES_FROM edges
@@ -120,11 +120,10 @@
 ## Future
 
 - Client-facing publish capabilities (share a synthesis note publicly)
-- SiYuan integration (si.qenjin.io) for long-form structured notes
-- WhatsApp bridge alongside Signal
+- SiYuan integration for long-form structured notes
+- WhatsApp and Signal bridge support (inherited from OpenClaw)
 - Advanced SOC modeling (Per Bak's sandpile applied to cognitive load)
 - Network isolation: Docker Compose with whitelist-only egress (api.anthropic.com)
-- Telegram bridge support (inherited from OpenClaw)
 
 ---
 
