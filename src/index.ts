@@ -5,6 +5,15 @@ import { get_history, push_message, clear_session } from "./session.js";
 
 const bot = new Bot(config.telegram.token);
 
+// ── Security: whitelist middleware ───────────────────────────────────────────
+// Silently drop all messages from users not in the allowed list.
+// No error reply — don't confirm to unknown callers that the bot exists.
+bot.use(async (ctx, next) => {
+  const uid = ctx.from?.id;
+  if (!uid || !config.telegram.allowedUsers.has(uid)) return;
+  await next();
+});
+
 // ── /start ──────────────────────────────────────────────────────────────────
 bot.command("start", async (ctx) => {
   await ctx.reply(

@@ -1,0 +1,17 @@
+services:
+  openbodhi:
+    build: .
+    container_name: openbodhi
+    restart: always
+    env_file: .env
+    volumes:
+      - bodhi-vault:/app/vault
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-files: "3"
+
+volumes:
+  bodhi-vault:
+    name: bodhi-vault
