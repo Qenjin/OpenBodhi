@@ -54,6 +54,7 @@ import {
   pickFallbackThinkingLevel,
   type FailoverReason,
 } from "../pi-embedded-helpers.js";
+import { getBudgetTracker } from "../../infra/budget-tracker.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
@@ -837,6 +838,25 @@ export async function runEmbeddedPiAgent(
           const prompt =
             provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
 
+          // Budget pre-check: block API call if daily/weekly limit is exhausted.
+          const budgetGuard = getBudgetTracker(params.config)?.check();
+          if (budgetGuard?.hardStopped) {
+            return {
+              payloads: [{ text: budgetGuard.reason ?? "API budget exhausted.", isError: false }],
+              meta: {
+                durationMs: Date.now() - started,
+                agentMeta: buildErrorAgentMeta({
+                  sessionId: params.sessionId,
+                  provider,
+                  model: model.id,
+                  usageAccumulator,
+                  lastRunPromptUsage,
+                }),
+                error: { kind: "budget_limit", message: budgetGuard.reason ?? "" },
+              },
+            };
+          }
+
           const attempt = await runEmbeddedAttempt({
             sessionId: params.sessionId,
             sessionKey: params.sessionKey,
@@ -931,6 +951,23 @@ export async function runEmbeddedPiAgent(
           const lastAssistantUsage = normalizeUsage(lastAssistant?.usage as UsageLike);
           const attemptUsage = attempt.attemptUsage ?? lastAssistantUsage;
           mergeUsageIntoAccumulator(usageAccumulator, attemptUsage);
+
+          // Budget post-record: track the actual cost of this API call.
+          if (attemptUsage) {
+            const budgetRecord = getBudgetTracker(params.config)?.record(
+              {
+                input: attemptUsage.input ?? 0,
+                output: attemptUsage.output ?? 0,
+                cacheRead: attemptUsage.cacheRead ?? 0,
+                cacheWrite: attemptUsage.cacheWrite ?? 0,
+              },
+              modelId,
+            );
+            if (budgetRecord?.alertMessage) {
+              log.warn(`[budget] ${budgetRecord.alertMessage}`);
+            }
+          }
+
           // Keep prompt size from the latest model call so session totalTokens
           // reflects current context usage, not accumulated tool-loop usage.
           lastRunPromptUsage = lastAssistantUsage ?? attemptUsage;
