@@ -30,19 +30,13 @@ Reply: `Switched to Claude (Sonnet). Vision and extended thinking enabled.`
 
 ## On `/ollama`
 
-```bash
-python3 -c "
-import json, os, pathlib
-cfg = pathlib.Path(os.path.expanduser('~/.openclaw/openclaw.json'))
-d = json.loads(cfg.read_text())
-d['agents']['defaults']['model'] = 'ollama/qwen2.5:7b'
-d['agents']['defaults']['thinkingDefault'] = 'off'
-cfg.write_text(json.dumps(d, indent=2))
-print('switched')
-"
-```
+Reply without running any command:
 
-Reply: `Switched to Ollama (Qwen 2.5 7B). Local only — no API cost. No vision.`
+```
+Ollama gateway mode is not available on this hardware.
+Local Ollama handles enrichment automatically — no switch needed.
+For lowest-cost chat: /model haiku
+```
 
 ## Rules
 
