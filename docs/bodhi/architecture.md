@@ -29,13 +29,15 @@ The Gateway handles:
 
 ### Agent/Skills System
 
-Skills are Node.js modules that register with the Gateway and respond to routed messages.
-Each skill declares:
-- Its name and description (used for routing)
-- The message types it handles
-- Its tool set
+Skills are SKILL.md prompt files, not compiled code. Claude reads the SKILL.md and uses
+built-in tools (bash, read, write) to execute the logic. Each SKILL.md declares:
+- Its name and description (YAML frontmatter)
+- Rules for how to handle messages
+- CLI commands to run for vault operations
 
-OpenBodhi adds 4 custom skills. The rest of the OpenClaw skill system is inherited unchanged.
+OpenBodhi adds 5 custom skills (Curator, Enricher, Distiller, Janitor, Surveyor) plus a
+Greeter skill for the @openbodhibot signpost bot. The rest of the OpenClaw skill system
+is inherited unchanged.
 
 ---
 
@@ -50,7 +52,7 @@ bodhi-curator skill
     ↓
 Claude Sonnet 4.6 (classify, tag)
     ↓
-Vault write (JSON node + ChromaDB embedding)
+Vault write (JSON node via bodhi_vault Python module)
     ↓
 Acknowledgment → user
 
@@ -174,12 +176,12 @@ structural properties of the vault itself.
 
 | Component | Technology | Version |
 |-----------|------------|---------|
-| Runtime | Node.js | 22+ |
-| Language | TypeScript | 5.x |
-| Package manager | pnpm | 9+ |
+| Gateway runtime | Node.js (OpenClaw) | 22+ |
+| Vault module | Python | 3.11+ |
+| Vault testing | pytest | 9+ |
+| Package manager | pnpm (gateway), uv (vault) | latest |
 | Gateway | OpenClaw | latest |
-| AI SDK | Anthropic SDK | latest |
-| Local models | Ollama | latest |
-| Vector store | ChromaDB | latest |
+| AI | Anthropic API (Claude) | latest |
+| Local models | Ollama (Mistral Nemo, nomic-embed-text) | latest |
+| Vector store | ChromaDB (Phase 2) | latest |
 | Containerization | Docker Compose | latest |
-| Testing | Vitest | latest |
